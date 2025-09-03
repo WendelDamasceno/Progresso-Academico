@@ -1,38 +1,672 @@
-.App {
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* Tema educacional verde */
+  --background: 0 0% 100%;
+  --foreground: 210 12% 22%;
+  --card: 0 0% 98%;
+  --card-foreground: 210 12% 22%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 210 12% 22%;
+  --primary: 160 60% 30%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 160 40% 45%;
+  --secondary-foreground: 0 0% 100%;
+  --muted: 0 0% 98%;
+  --muted-foreground: 210 12% 55%;
+  --accent: 160 40% 45%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 0 0% 95%;
+  --input: 0 0% 100%;
+  --ring: 160 40% 45%;
+  --chart-1: 160 60% 30%;
+  --chart-2: 160 40% 45%;
+  --chart-3: 45 70% 65%;
+  --chart-4: 160 30% 75%;
+  --chart-5: 160 20% 85%;
+  --radius: 0.625rem;
+}
+
+.dark {
+  /* Modo escuro mantendo identidade verde */
+  --background: 0 0% 5%;
+  --foreground: 0 0% 95%;
+  --card: 0 0% 8%;
+  --card-foreground: 0 0% 95%;
+  --popover: 0 0% 5%;
+  --popover-foreground: 0 0% 95%;
+  --primary: 160 50% 65%;
+  --primary-foreground: 0 0% 8%;
+  --secondary: 0 0% 15%;
+  --secondary-foreground: 0 0% 95%;
+  --muted: 0 0% 15%;
+  --muted-foreground: 0 0% 65%;
+  --accent: 0 0% 15%;
+  --accent-foreground: 0 0% 95%;
+  --destructive: 0 63% 50%;
+  --destructive-foreground: 0 0% 95%;
+  --border: 0 0% 15%;
+  --input: 0 0% 15%;
+  --ring: 0 0% 35%;
+  --chart-1: 160 50% 65%;
+  --chart-2: 160 40% 55%;
+  --chart-3: 45 70% 65%;
+  --chart-4: 160 30% 45%;
+  --chart-5: 160 20% 35%;
+}
+
+* {
+  box-sizing: border-box;
+  border-color: hsl(var(--border));
+}
+
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.6;
+  margin: 0;
+  padding: 0;
+}
+
+/* Layout moderno */
+.min-h-screen {
+  min-height: 100vh;
+}
+
+.bg-background {
+  background-color: hsl(var(--background));
+}
+
+.text-foreground {
+  color: hsl(var(--foreground));
+}
+
+.text-muted-foreground {
+  color: hsl(var(--muted-foreground));
+}
+
+.text-card-foreground {
+  color: hsl(var(--card-foreground));
+}
+
+.text-primary {
+  color: hsl(var(--primary));
+}
+
+.bg-primary {
+  background-color: hsl(var(--primary));
+}
+
+.text-primary-foreground {
+  color: hsl(var(--primary-foreground));
+}
+
+.bg-muted {
+  background-color: hsl(var(--muted));
+}
+
+.border-border {
+  border-color: hsl(var(--border));
+}
+
+.bg-input {
+  background-color: hsl(var(--input));
+}
+
+/* Grid layout */
+.grid {
+  display: grid;
+}
+
+.grid-cols-1 {
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+.gap-6 {
+  gap: 1.5rem;
+}
+
+@media (min-width: 1024px) {
+  .lg\:grid-cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .lg\:col-span-1 {
+    grid-column: span 1 / span 1;
+  }
+}
+
+/* Componentes modernos */
+.card-gradient {
+  background: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--muted)) 50%);
+  backdrop-filter: blur(10px);
+  border: 1px solid hsl(var(--border) / 0.5);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.floating-card {
+  transition: all 0.3s ease;
+}
+
+.floating-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.p-6 {
+  padding: 1.5rem;
+}
+
+.pt-0 {
+  padding-top: 0;
+}
+
+.mb-8 {
+  margin-bottom: 2rem;
+}
+
+.mb-2 {
+  margin-bottom: 0.5rem;
+}
+
+.mb-3 {
+  margin-bottom: 0.75rem;
+}
+
+.text-center {
   text-align: center;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+.text-4xl {
+  font-size: 2.25rem;
+  line-height: 2.5rem;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+.text-3xl {
+  font-size: 1.875rem;
+  line-height: 2.25rem;
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
+.text-2xl {
+  font-size: 1.5rem;
+  line-height: 2rem;
+}
+
+.text-lg {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+}
+
+.text-sm {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.text-xs {
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.font-bold {
+  font-weight: 700;
+}
+
+.font-semibold {
+  font-weight: 600;
+}
+
+.font-medium {
+  font-weight: 500;
+}
+
+/* Flexbox */
+.flex {
   display: flex;
+}
+
+.flex-col {
   flex-direction: column;
+}
+
+.items-center {
   align-items: center;
+}
+
+.justify-center {
   justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
 }
 
-.App-link {
-  color: #61dafb;
+.justify-between {
+  justify-content: space-between;
 }
 
-@keyframes App-logo-spin {
+.gap-2 {
+  gap: 0.5rem;
+}
+
+.gap-4 {
+  gap: 1rem;
+}
+
+.space-y-1\.5 > * + * {
+  margin-top: 0.375rem;
+}
+
+.space-y-2 > * + * {
+  margin-top: 0.5rem;
+}
+
+.space-y-3 > * + * {
+  margin-top: 0.75rem;
+}
+
+.space-y-4 > * + * {
+  margin-top: 1rem;
+}
+
+.space-y-6 > * + * {
+  margin-top: 1.5rem;
+}
+
+.space-x-3 > * + * {
+  margin-left: 0.75rem;
+}
+
+/* Componentes específicos */
+.progress-circle {
+  position: relative;
+  width: 8rem;
+  height: 8rem;
+}
+
+.progress-circle svg {
+  width: 8rem;
+  height: 8rem;
+  transform: rotate(-90deg);
+}
+
+.progress-circle .bg-circle {
+  stroke: hsl(var(--muted));
+}
+
+.progress-circle .progress-fill {
+  stroke: hsl(var(--primary));
+  transition: all 0.7s ease-in-out;
+}
+
+.absolute {
+  position: absolute;
+}
+
+.inset-0 {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+
+.stroke-8 {
+  stroke-width: 8;
+}
+
+/* Badges e status */
+.status-badge-complete {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.status-badge-progress {
+  background-color: hsl(var(--secondary));
+  color: hsl(var(--secondary-foreground));
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.status-badge-pending {
+  background-color: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+  border: 1px solid hsl(var(--border));
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+/* Cards de semestre */
+.semester-card {
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  padding: 1rem;
+  transition: all 0.3s ease;
+}
+
+.semester-card:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border-color: hsl(var(--primary) / 0.5);
+}
+
+/* Items de disciplina */
+.discipline-item {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+  transition: all 0.2s ease;
+}
+
+.discipline-item:hover {
+  background-color: hsl(var(--muted) / 0.5);
+}
+
+.discipline-checkbox {
+  height: 1rem;
+  width: 1rem;
+  accent-color: hsl(var(--primary));
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.25rem;
+}
+
+.discipline-checkbox:focus {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* Category badges */
+.category-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.category-obrigatoria {
+  background-color: hsl(var(--primary) / 0.1);
+  color: hsl(var(--primary));
+}
+
+.category-optativa {
+  background-color: hsl(var(--secondary) / 0.1);
+  color: hsl(var(--secondary));
+}
+
+.category-pratica {
+  background-color: hsl(var(--accent) / 0.1);
+  color: hsl(var(--accent));
+}
+
+.category-tcc {
+  background-color: hsl(var(--chart-3) / 0.1);
+  color: hsl(var(--chart-3));
+}
+
+.workload-info {
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+  background-color: hsl(var(--muted));
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+}
+
+/* Projection card */
+.projection-card {
+  background: linear-gradient(135deg, hsl(var(--primary) / 0.05) 0%, hsl(var(--secondary) / 0.05) 100%);
+  border: 1px solid hsl(var(--primary) / 0.2);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+}
+
+/* Progress bars */
+.progress-bar-modern {
+  height: 0.5rem;
+  background-color: hsl(var(--muted));
+  border-radius: 9999px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--secondary)));
+  transition: all 0.7s ease-out;
+  position: relative;
+  overflow: hidden;
+}
+
+.h-3 .progress-bar-modern {
+  height: 0.75rem;
+}
+
+.h-1 .progress-bar-modern {
+  height: 0.25rem;
+}
+
+/* Utility classes */
+.flex-1 {
+  flex: 1 1 0%;
+}
+
+.min-w-0 {
+  min-width: 0;
+}
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.max-h-96 {
+  max-height: 24rem;
+}
+
+.overflow-y-auto {
+  overflow-y: auto;
+}
+
+.w-6 {
+  width: 1.5rem;
+}
+
+.h-6 {
+  height: 1.5rem;
+}
+
+.w-5 {
+  width: 1.25rem;
+}
+
+.h-5 {
+  height: 1.25rem;
+}
+
+.w-4 {
+  width: 1rem;
+}
+
+.h-4 {
+  height: 1rem;
+}
+
+.w-3 {
+  width: 0.75rem;
+}
+
+.h-3 {
+  height: 0.75rem;
+}
+
+.w-12 {
+  width: 3rem;
+}
+
+.h-12 {
+  height: 3rem;
+}
+
+.rounded-full {
+  border-radius: 9999px;
+}
+
+.rounded-lg {
+  border-radius: var(--radius);
+}
+
+.rounded {
+  border-radius: 0.25rem;
+}
+
+.mx-auto {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.ml-2 {
+  margin-left: 0.5rem;
+}
+
+.px-2 {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+.py-1 {
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}
+
+.border {
+  border-width: 1px;
+}
+
+/* Gradient text */
+.bg-gradient-to-r {
+  background-image: linear-gradient(to right, var(--tw-gradient-stops));
+}
+
+.from-primary {
+  --tw-gradient-from: hsl(var(--primary));
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, hsl(var(--primary) / 0));
+}
+
+.to-secondary {
+  --tw-gradient-to: hsl(var(--secondary));
+}
+
+.bg-clip-text {
+  background-clip: text;
+  -webkit-background-clip: text;
+}
+
+.text-transparent {
+  color: transparent;
+}
+
+/* Animações */
+@keyframes fadeInUp {
   from {
-    transform: rotate(0deg);
+    opacity: 0;
+    transform: translateY(20px);
   }
   to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spin {
+  to {
     transform: rotate(360deg);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.animate-delay-1 {
+  animation-delay: 0.1s;
+  animation-fill-mode: both;
+}
+
+.animate-delay-2 {
+  animation-delay: 0.2s;
+  animation-fill-mode: both;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Input styling */
+input[type="month"] {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.25rem;
+  background-color: hsl(var(--input));
+  color: hsl(var(--foreground));
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+input[type="month"]:focus {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: -2px;
+  border-color: transparent;
+}
+
+/* Responsividade para mobile */
+@media (max-width: 640px) {
+  .progress-circle {
+    width: 6rem;
+    height: 6rem;
+  }
+
+  .progress-circle svg {
+    width: 6rem;
+    height: 6rem;
+  }
+
+  .semester-card {
+    padding: 0.75rem;
+  }
+
+  .discipline-item {
+    padding: 0.5rem;
+  }
+
+  .text-4xl {
+    font-size: 1.875rem;
+    line-height: 2.25rem;
+  }
+
+  .p-6 {
+    padding: 1rem;
+  }
+
+  .gap-6 {
+    gap: 1rem;
   }
 }
