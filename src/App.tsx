@@ -20,21 +20,90 @@ function calcularResultados(concluidasIds: Set<number>, dataIngresso: string) {
   const chTotalPrevista = CH_PREVISTA.OBRIGATORIAS + CH_PREVISTA.OPTATIVAS + CH_PREVISTA.PRATICA_PROFISSIONAL + CH_PREVISTA.TCC;
   const percentualGeral = chTotalPrevista > 0 ? (chTotalCumprida / chTotalPrevista * 100) : 0;
 
-  // 2. Projeção de Formatura (LÓGICA CORRIGIDA)
+  // 2. Cálculo do Ritmo e Performance do Estudante
   const disciplinasPendentes = MATRIZ_CURRICULAR.filter(d => !concluidasIds.has(d.id));
   const disciplinasObrigatoriasPendentes = disciplinasPendentes.filter(d => d.categoria === 'Obrigatória');
 
-  console.log('📋 Análise das disciplinas:', {
-    totalPendentes: disciplinasPendentes.length,
-    obrigatoriasPendentes: disciplinasObrigatoriasPendentes.length
+  // Calcular semestres decorridos desde o ingresso
+  let semestresDecorridos = 0;
+  let ritmoAtual = 0;
+  let desempenho = "Em início";
+
+  if (dataIngresso && dataIngresso.length >= 7) {
+    try {
+      const [anoStr, mesStr] = dataIngresso.split('-');
+      const anoIngresso = parseInt(anoStr);
+      const mesIngresso = parseInt(mesStr);
+
+      if (!isNaN(anoIngresso) && !isNaN(mesIngresso)) {
+        const hoje = new Date();
+        const anoAtual = hoje.getFullYear();
+        const mesAtual = hoje.getMonth() + 1;
+
+        // Calcular diferença em semestres desde o ingresso
+        let semestresTotais = 0;
+
+        // Determinar semestre de ingresso
+        const semestreIngressoTipo = (mesIngresso >= 3 && mesIngresso <= 9) ? 1 : 2;
+        const anoIngressoAjustado = (mesIngresso <= 2) ? anoIngresso - 1 : anoIngresso;
+
+        // Determinar semestre atual
+        const semestreAtualTipo = (mesAtual >= 3 && mesAtual <= 9) ? 1 : 2;
+        const anoAtualAjustado = (mesAtual <= 2) ? anoAtual - 1 : anoAtual;
+
+        // Calcular diferença em semestres
+        const diferencaAnos = anoAtualAjustado - anoIngressoAjustado;
+        semestresTotais = (diferencaAnos * 2) + (semestreAtualTipo - semestreIngressoTipo);
+
+        semestresDecorridos = Math.max(0, semestresTotais);
+
+        // Calcular ritmo atual (disciplinas por semestre)
+        if (semestresDecorridos > 0) {
+          ritmoAtual = disciplinasConcluidas.length / semestresDecorridos;
+        }
+
+        // Avaliar desempenho
+        if (ritmoAtual >= 6) {
+          desempenho = "Excelente";
+        } else if (ritmoAtual >= 4) {
+          desempenho = "Bom";
+        } else if (ritmoAtual >= 2) {
+          desempenho = "Regular";
+        } else if (semestresDecorridos > 0) {
+          desempenho = "Atenção";
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao calcular performance:', error);
+    }
+  }
+
+  console.log('📊 Performance calculada:', {
+    semestresDecorridos,
+    ritmoAtual: ritmoAtual.toFixed(1),
+    desempenho,
+    disciplinasConcluidas: disciplinasConcluidas.length
   });
 
-  let projecao = { semestre: "N/A", data: "Informe a data de ingresso" };
+  // 3. Projeção de Formatura Inteligente
+  let projecao = {
+    semestre: "N/A",
+    data: "Informe a data de ingresso",
+    semestresDecorridos,
+    ritmoAtual,
+    desempenho
+  };
 
   // Se não há disciplinas pendentes, curso está concluído
   if (disciplinasPendentes.length === 0) {
-    projecao = { semestre: "Concluído!", data: "Parabéns! Curso finalizado!" };
-    console.log('🎉 Curso concluído!');
+    projecao = {
+      semestre: "Concluído!",
+      data: "Parabéns! Curso finalizado!",
+      semestresDecorridos,
+      ritmoAtual,
+      desempenho: "Concluído"
+    };
+
     return {
       progressoPorCategoria: {
         'Disciplinas Obrigatórias': {
@@ -69,18 +138,22 @@ function calcularResultados(concluidasIds: Set<number>, dataIngresso: string) {
     };
   }
 
-  // Validar e processar data de ingresso
+  // Validar e processar data de ingresso para projeção
   if (!dataIngresso || dataIngresso.length < 7) {
     console.log('⚠️ Data de ingresso inválida:', dataIngresso);
-    projecao = { semestre: "N/A", data: "Data de ingresso inválida" };
+    projecao = {
+      semestre: "N/A",
+      data: "Data de ingresso inválida",
+      semestresDecorridos,
+      ritmoAtual,
+      desempenho
+    };
   } else {
     try {
       // Processar data no formato YYYY-MM
       const [anoStr, mesStr] = dataIngresso.split('-');
       const anoIngresso = parseInt(anoStr);
       const mesIngresso = parseInt(mesStr);
-
-      console.log('📅 Data processada:', { ano: anoIngresso, mes: mesIngresso });
 
       if (isNaN(anoIngresso) || isNaN(mesIngresso) || mesIngresso < 1 || mesIngresso > 12) {
         throw new Error('Data inválida');
@@ -91,48 +164,51 @@ function calcularResultados(concluidasIds: Set<number>, dataIngresso: string) {
       let anoIngressoAjustado: number;
 
       if (mesIngresso >= 3 && mesIngresso <= 9) {
-        // Março a Setembro = semestre .1
         semestreIngressoSufixo = 1;
         anoIngressoAjustado = anoIngresso;
       } else {
-        // Outubro a Fevereiro = semestre .2
         semestreIngressoSufixo = 2;
-        // Janeiro/Fevereiro pertencem ao ano letivo anterior
         anoIngressoAjustado = (mesIngresso <= 2) ? anoIngresso - 1 : anoIngresso;
       }
 
       const semestreIngresso = `${anoIngressoAjustado}.${semestreIngressoSufixo}`;
-      console.log('🎯 Semestre de ingresso:', semestreIngresso);
 
-      // Calcular quantos semestres são necessários
-      const DISCIPLINAS_POR_SEMESTRE_MEDIA = 6;
-      const semestresNecessarios = Math.ceil(disciplinasObrigatoriasPendentes.length / DISCIPLINAS_POR_SEMESTRE_MEDIA);
+      // Lógica inteligente de projeção baseada no ritmo real
+      let disciplinasPorSemestre: number;
 
-      console.log('⏱️ Semestres necessários:', semestresNecessarios);
+      if (ritmoAtual > 0 && semestresDecorridos >= 2) {
+        // Usar ritmo real do estudante
+        disciplinasPorSemestre = ritmoAtual;
+      } else {
+        // Usar média padrão do curso
+        disciplinasPorSemestre = 6;
+      }
+
+      // Considerar que o estudante pode estar repetindo disciplinas
+      // Se o ritmo é muito baixo, pode indicar repetências
+      if (ritmoAtual > 0 && ritmoAtual < 3 && semestresDecorridos >= 3) {
+        // Ajustar a projeção para considerar dificuldades
+        disciplinasPorSemestre = Math.max(3, ritmoAtual * 1.2);
+      }
+
+      const semestresNecessarios = Math.ceil(disciplinasObrigatoriasPendentes.length / disciplinasPorSemestre);
 
       // Encontrar posição do semestre de ingresso no calendário
       let posicaoIngresso = CALENDARIO_ACADEMICO.findIndex(sem => sem.semestre === semestreIngresso);
 
       if (posicaoIngresso === -1) {
-        // Se não encontrar no calendário, calcular posição baseada no primeiro semestre
-        const primeiroSemestre = CALENDARIO_ACADEMICO[0]; // 2023.2
+        const primeiroSemestre = CALENDARIO_ACADEMICO[0];
         const [anoBase, semestreBase] = primeiroSemestre.semestre.split('.').map(n => parseInt(n));
-
         const diferencaAnos = anoIngressoAjustado - anoBase;
         posicaoIngresso = (diferencaAnos * 2) + (semestreIngressoSufixo - semestreBase);
         posicaoIngresso = Math.max(0, posicaoIngresso);
-
-        console.log('📊 Posição calculada:', posicaoIngresso);
-      } else {
-        console.log('📍 Posição encontrada no calendário:', posicaoIngresso);
       }
 
-      // Calcular semestre de formatura
-      const posicaoFormatura = posicaoIngresso + semestresNecessarios - 1;
-      console.log('🎓 Posição de formatura:', posicaoFormatura);
+      // Calcular semestre de formatura considerando semestres já decorridos
+      const posicaoAtual = posicaoIngresso + semestresDecorridos;
+      const posicaoFormatura = posicaoAtual + semestresNecessarios - 1;
 
       if (posicaoFormatura < CALENDARIO_ACADEMICO.length) {
-        // Formatura dentro do calendário disponível
         const semestreFinal = CALENDARIO_ACADEMICO[posicaoFormatura];
         const dataFim = new Date(semestreFinal.fim + 'T00:00:00');
 
@@ -142,9 +218,11 @@ function calcularResultados(concluidasIds: Set<number>, dataIngresso: string) {
             day: '2-digit',
             month: 'long',
             year: 'numeric'
-          })
+          }),
+          semestresDecorridos,
+          ritmoAtual,
+          desempenho
         };
-        console.log('✅ Projeção calculada:', projecao);
       } else {
         // Extrapolar além do calendário
         const ultimoSemestre = CALENDARIO_ACADEMICO[CALENDARIO_ACADEMICO.length - 1];
@@ -162,18 +240,24 @@ function calcularResultados(concluidasIds: Set<number>, dataIngresso: string) {
             day: '2-digit',
             month: 'long',
             year: 'numeric'
-          }) + ' (Estimativa)'
+          }) + ' (Estimativa)',
+          semestresDecorridos,
+          ritmoAtual,
+          desempenho
         };
-        console.log('📈 Projeção extrapolada:', projecao);
       }
 
     } catch (error) {
       console.error('❌ Erro no cálculo:', error);
-      projecao = { semestre: "Erro", data: "Erro no cálculo da projeção" };
+      projecao = {
+        semestre: "Erro",
+        data: "Erro no cálculo da projeção",
+        semestresDecorridos,
+        ritmoAtual,
+        desempenho
+      };
     }
   }
-
-  console.log('🏁 Resultado final:', projecao);
 
   return {
     progressoPorCategoria: {
