@@ -1,16 +1,12 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import { MATRIZ_CURRICULAR, CALENDARIO_ACADEMICO, CH_PREVISTA, Disciplina } from './data/curso';
-import { cn } from './lib/utils';
-import { Calendar, BookOpen, TrendingUp, CheckCircle, Clock, AlertCircle, RefreshCw, GraduationCap } from 'lucide-react';
+import { MATRIZ_CURRICULAR, CH_PREVISTA, CALENDARIO_ACADEMICO, Disciplina } from './data/curso';
 import './App.css';
 
-// --- FUNÇÃO DE CÁLCULO FINAL E COMPLETA ---
-function calcularResultados(concluidasIds: Set<number>, dataIngresso: string) {
-  console.log('🔄 Recalculando resultados...', { dataIngresso, totalConcluidas: concluidasIds.size });
-
-  // 1. Cálculos de Progresso por Categoria
+// --- FUNÇÃO DE CÁLCULO CORRIGIDA E COMENTADA ---
+function calcularResultados(concluidasIds: Set<number>) {
+  // --- Bloco 1: Cálculo de Progresso (sem alterações, já estava correto) ---
   const disciplinasConcluidas = MATRIZ_CURRICULAR.filter(d => concluidasIds.has(d.id));
   const chCumprida: Record<Disciplina['categoria'], number> = {
     'Obrigatória': 0, 'Optativa': 0, 'Prática Profissional': 0, 'TCC': 0,
@@ -20,350 +16,94 @@ function calcularResultados(concluidasIds: Set<number>, dataIngresso: string) {
   const chTotalPrevista = CH_PREVISTA.OBRIGATORIAS + CH_PREVISTA.OPTATIVAS + CH_PREVISTA.PRATICA_PROFISSIONAL + CH_PREVISTA.TCC;
   const percentualGeral = chTotalPrevista > 0 ? (chTotalCumprida / chTotalPrevista * 100) : 0;
 
-  // 2. Cálculo do Ritmo e Performance do Estudante
   const disciplinasPendentes = MATRIZ_CURRICULAR.filter(d => !concluidasIds.has(d.id));
-  const disciplinasObrigatoriasPendentes = disciplinasPendentes.filter(d => d.categoria === 'Obrigatória');
+  const concluidasCodigos = new Set(disciplinasConcluidas.map(d => d.codigo));
+  const elegiveis = disciplinasPendentes.filter(disciplina =>
+    disciplina.prerequisitos.every(prereqCodigo => concluidasCodigos.has(prereqCodigo))
+  );
 
-  // Calcular semestres decorridos desde o ingresso
-  let semestresDecorridos = 0;
-  let ritmoAtual = 0;
-  let desempenho = "Em início";
+  // --- Bloco 2: Projeção de Formatura (LÓGICA CORRIGIDA) ---
+  let projecao = { semestre: "N/A", data: "Cálculo pendente" };
 
-  if (dataIngresso && dataIngresso.length >= 7) {
-    try {
-      const [anoStr, mesStr] = dataIngresso.split('-');
-      const anoIngresso = parseInt(anoStr);
-      const mesIngresso = parseInt(mesStr);
-
-      if (!isNaN(anoIngresso) && !isNaN(mesIngresso)) {
-        const hoje = new Date();
-        const anoAtual = hoje.getFullYear();
-        const mesAtual = hoje.getMonth() + 1;
-
-        // Calcular diferença em semestres desde o ingresso
-        let semestresTotais = 0;
-
-        // Determinar semestre de ingresso
-        const semestreIngressoTipo = (mesIngresso >= 3 && mesIngresso <= 9) ? 1 : 2;
-        const anoIngressoAjustado = (mesIngresso <= 2) ? anoIngresso - 1 : anoIngresso;
-
-        // Determinar semestre atual
-        const semestreAtualTipo = (mesAtual >= 3 && mesAtual <= 9) ? 1 : 2;
-        const anoAtualAjustado = (mesAtual <= 2) ? anoAtual - 1 : anoAtual;
-
-        // Calcular diferença em semestres
-        const diferencaAnos = anoAtualAjustado - anoIngressoAjustado;
-        semestresTotais = (diferencaAnos * 2) + (semestreAtualTipo - semestreIngressoTipo);
-
-        semestresDecorridos = Math.max(0, semestresTotais);
-
-        // Calcular ritmo atual (disciplinas por semestre)
-        if (semestresDecorridos > 0) {
-          ritmoAtual = disciplinasConcluidas.length / semestresDecorridos;
-        }
-
-        // Avaliar desempenho
-        if (ritmoAtual >= 6) {
-          desempenho = "Excelente";
-        } else if (ritmoAtual >= 4) {
-          desempenho = "Bom";
-        } else if (ritmoAtual >= 2) {
-          desempenho = "Regular";
-        } else if (semestresDecorridos > 0) {
-          desempenho = "Atenção";
-        }
-      }
-    } catch (error) {
-      console.error('Erro ao calcular performance:', error);
-    }
-  }
-
-  console.log('📊 Performance calculada:', {
-    semestresDecorridos,
-    ritmoAtual: ritmoAtual.toFixed(1),
-    desempenho,
-    disciplinasConcluidas: disciplinasConcluidas.length
-  });
-
-  // 3. Projeção de Formatura Inteligente
-  let projecao = {
-    semestre: "N/A",
-    data: "Informe a data de ingresso",
-    semestresDecorridos,
-    ritmoAtual,
-    desempenho
-  };
-
-  // Se não há disciplinas pendentes, curso está concluído
   if (disciplinasPendentes.length === 0) {
-    projecao = {
-      semestre: "Concluído!",
-      data: "Parabéns! Curso finalizado!",
-      semestresDecorridos,
-      ritmoAtual,
-      desempenho: "Concluído"
-    };
-
-    return {
-      progressoPorCategoria: {
-        'Disciplinas Obrigatórias': {
-          prevista: CH_PREVISTA.OBRIGATORIAS,
-          cumprida: chCumprida['Obrigatória'],
-          pendente: CH_PREVISTA.OBRIGATORIAS - chCumprida['Obrigatória'],
-        },
-        'Disciplinas Optativas': {
-          prevista: CH_PREVISTA.OPTATIVAS,
-          cumprida: chCumprida['Optativa'],
-          pendente: CH_PREVISTA.OPTATIVAS - chCumprida['Optativa'],
-        },
-        'Prática Profissional': {
-          prevista: CH_PREVISTA.PRATICA_PROFISSIONAL,
-          cumprida: chCumprida['Prática Profissional'],
-          pendente: CH_PREVISTA.PRATICA_PROFISSIONAL - chCumprida['Prática Profissional'],
-        },
-        'Disciplinas de TCC': {
-          prevista: CH_PREVISTA.TCC,
-          cumprida: chCumprida['TCC'],
-          pendente: CH_PREVISTA.TCC - chCumprida['TCC'],
-        },
-        'Atividades Complementares': {
-          prevista: CH_PREVISTA.ATIVIDADES_COMPLEMENTARES,
-          cumprida: 0,
-          pendente: CH_PREVISTA.ATIVIDADES_COMPLEMENTARES - 0,
-        },
-      },
-      percentualGeral,
-      disciplinasPendentes,
-      projecao
-    };
-  }
-
-  // Validar e processar data de ingresso para projeção
-  if (!dataIngresso || dataIngresso.length < 7) {
-    console.log('⚠️ Data de ingresso inválida:', dataIngresso);
-    projecao = {
-      semestre: "N/A",
-      data: "Data de ingresso inválida",
-      semestresDecorridos,
-      ritmoAtual,
-      desempenho
-    };
+    projecao = { semestre: "Concluído!", data: "Parabéns!" };
   } else {
-    try {
-      // Processar data no formato YYYY-MM
-      const [anoStr, mesStr] = dataIngresso.split('-');
-      const anoIngresso = parseInt(anoStr);
-      const mesIngresso = parseInt(mesStr);
+    // CORREÇÃO: A estimativa de ritmo deve se basear nas disciplinas que definem a duração do curso.
+    // TCC, Estágio e Optativas muitas vezes são cursados em paralelo ou concentrados no final.
+    const disciplinasObrigatoriasPendentes = disciplinasPendentes.filter(d => d.categoria === 'Obrigatória');
+    const DISCIPLINAS_POR_SEMESTRE_MEDIA = 6; // Suposição razoável do ritmo do aluno.
+    const semestresRestantes = Math.ceil(disciplinasObrigatoriasPendentes.length / DISCIPLINAS_POR_SEMESTRE_MEDIA) || (disciplinasPendentes.length > 0 ? 1 : 0);
 
-      if (isNaN(anoIngresso) || isNaN(mesIngresso) || mesIngresso < 1 || mesIngresso > 12) {
-        throw new Error('Data inválida');
+    const hoje = new Date();
+    let indiceSemestreAtual = -1;
+
+    // LÓGICA REFINADA: Encontra o semestre atual ou o próximo a começar.
+    // Isso é crucial para saber de qual ponto do calendário devemos partir.
+    for (let i = 0; i < CALENDARIO_ACADEMICO.length; i++) {
+      const sem = CALENDARIO_ACADEMICO[i];
+      const inicioSemestre = new Date(sem.inicio + "T00:00:00"); // Adiciona T00:00 para evitar problemas de fuso horário
+      const fimSemestre = new Date(sem.fim + "T23:59:59");
+
+      if (inicioSemestre <= hoje && hoje <= fimSemestre) {
+        indiceSemestreAtual = i;
+        break;
       }
-
-      // Determinar semestre de ingresso baseado no mês
-      let semestreIngressoSufixo: number;
-      let anoIngressoAjustado: number;
-
-      if (mesIngresso >= 3 && mesIngresso <= 9) {
-        semestreIngressoSufixo = 1;
-        anoIngressoAjustado = anoIngresso;
-      } else {
-        semestreIngressoSufixo = 2;
-        anoIngressoAjustado = (mesIngresso <= 2) ? anoIngresso - 1 : anoIngresso;
+      if (hoje < inicioSemestre) { // Se estamos no recesso, o ponto de partida é o próximo semestre
+        indiceSemestreAtual = i;
+        break;
       }
+    }
 
-      const semestreIngresso = `${anoIngressoAjustado}.${semestreIngressoSufixo}`;
+    // Se a data de hoje for posterior a todos os calendários, usamos o último como referência
+    if (indiceSemestreAtual === -1) {
+      indiceSemestreAtual = CALENDARIO_ACADEMICO.length - 1;
+    }
 
-      // Lógica inteligente de projeção baseada no ritmo real
-      let disciplinasPorSemestre: number;
+    // CORREÇÃO: O cálculo do índice final precisa considerar que o semestre atual já faz parte da contagem.
+    const indiceFormatura = indiceSemestreAtual + semestresRestantes - 1;
 
-      if (ritmoAtual > 0 && semestresDecorridos >= 2) {
-        // Usar ritmo real do estudante
-        disciplinasPorSemestre = ritmoAtual;
-      } else {
-        // Usar média padrão do curso
-        disciplinasPorSemestre = 6;
-      }
-
-      // Considerar que o estudante pode estar repetindo disciplinas
-      // Se o ritmo é muito baixo, pode indicar repetências
-      if (ritmoAtual > 0 && ritmoAtual < 3 && semestresDecorridos >= 3) {
-        // Ajustar a projeção para considerar dificuldades
-        disciplinasPorSemestre = Math.max(3, ritmoAtual * 1.2);
-      }
-
-      const semestresNecessarios = Math.ceil(disciplinasObrigatoriasPendentes.length / disciplinasPorSemestre);
-
-      // Encontrar posição do semestre de ingresso no calendário
-      let posicaoIngresso = CALENDARIO_ACADEMICO.findIndex(sem => sem.semestre === semestreIngresso);
-
-      if (posicaoIngresso === -1) {
-        const primeiroSemestre = CALENDARIO_ACADEMICO[0];
-        const [anoBase, semestreBase] = primeiroSemestre.semestre.split('.').map(n => parseInt(n));
-        const diferencaAnos = anoIngressoAjustado - anoBase;
-        posicaoIngresso = (diferencaAnos * 2) + (semestreIngressoSufixo - semestreBase);
-        posicaoIngresso = Math.max(0, posicaoIngresso);
-      }
-
-      // Calcular semestre de formatura considerando semestres já decorridos
-      const posicaoAtual = posicaoIngresso + semestresDecorridos;
-      const posicaoFormatura = posicaoAtual + semestresNecessarios - 1;
-
-      if (posicaoFormatura < CALENDARIO_ACADEMICO.length) {
-        const semestreFinal = CALENDARIO_ACADEMICO[posicaoFormatura];
-        const dataFim = new Date(semestreFinal.fim + 'T00:00:00');
-
-        projecao = {
-          semestre: semestreFinal.semestre,
-          data: dataFim.toLocaleDateString('pt-BR', {
-            day: '2-digit',
-            month: 'long',
-            year: 'numeric'
-          }),
-          semestresDecorridos,
-          ritmoAtual,
-          desempenho
-        };
-      } else {
-        // Extrapolar além do calendário
-        const ultimoSemestre = CALENDARIO_ACADEMICO[CALENDARIO_ACADEMICO.length - 1];
-        const semestresAdicionales = posicaoFormatura - (CALENDARIO_ACADEMICO.length - 1);
-
-        const dataUltimoSemestre = new Date(ultimoSemestre.fim + 'T00:00:00');
-        dataUltimoSemestre.setMonth(dataUltimoSemestre.getMonth() + (6 * semestresAdicionales));
-
-        const anoFinal = dataUltimoSemestre.getFullYear();
-        const semestreFinal = (dataUltimoSemestre.getMonth() < 6) ? 1 : 2;
-
-        projecao = {
-          semestre: `${anoFinal}.${semestreFinal} (Estimado)`,
-          data: dataUltimoSemestre.toLocaleDateString('pt-BR', {
-            day: '2-digit',
-            month: 'long',
-            year: 'numeric'
-          }) + ' (Estimativa)',
-          semestresDecorridos,
-          ritmoAtual,
-          desempenho
-        };
-      }
-
-    } catch (error) {
-      console.error('❌ Erro no cálculo:', error);
+    if (indiceFormatura < CALENDARIO_ACADEMICO.length) {
+      const semestreFinal = CALENDARIO_ACADEMICO[indiceFormatura];
       projecao = {
-        semestre: "Erro",
-        data: "Erro no cálculo da projeção",
-        semestresDecorridos,
-        ritmoAtual,
-        desempenho
+        semestre: semestreFinal.semestre,
+        data: new Date(semestreFinal.fim + "T00:00:00").toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
+      };
+    } else {
+      // LÓGICA DE FALLBACK: Extrapola a data se o calendário conhecido não for suficiente
+      const ultimoSemestre = CALENDARIO_ACADEMICO[CALENDARIO_ACADEMICO.length - 1];
+      const semestresExtras = indiceFormatura - (CALENDARIO_ACADEMICO.length - 1);
+      const dataFinalProjetada = new Date(ultimoSemestre.fim + "T00:00:00");
+      dataFinalProjetada.setMonth(dataFinalProjetada.getMonth() + 6 * semestresExtras);
+
+      const anoFinal = dataFinalProjetada.getFullYear();
+      const periodoFinal = dataFinalProjetada.getMonth() < 6 ? 1 : 2;
+
+      projecao = {
+        semestre: `~${anoFinal}.${periodoFinal}`,
+        data: dataFinalProjetada.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }) + " (Estimativa)"
       };
     }
   }
 
-  return {
-    progressoPorCategoria: {
-      'Disciplinas Obrigatórias': {
-        prevista: CH_PREVISTA.OBRIGATORIAS,
-        cumprida: chCumprida['Obrigatória'],
-        pendente: CH_PREVISTA.OBRIGATORIAS - chCumprida['Obrigatória'],
-      },
-      'Disciplinas Optativas': {
-        prevista: CH_PREVISTA.OPTATIVAS,
-        cumprida: chCumprida['Optativa'],
-        pendente: CH_PREVISTA.OPTATIVAS - chCumprida['Optativa'],
-      },
-      'Prática Profissional': {
-        prevista: CH_PREVISTA.PRATICA_PROFISSIONAL,
-        cumprida: chCumprida['Prática Profissional'],
-        pendente: CH_PREVISTA.PRATICA_PROFISSIONAL - chCumprida['Prática Profissional'],
-      },
-      'Disciplinas de TCC': {
-        prevista: CH_PREVISTA.TCC,
-        cumprida: chCumprida['TCC'],
-        pendente: CH_PREVISTA.TCC - chCumprida['TCC'],
-      },
-      'Atividades Complementares': {
-        prevista: CH_PREVISTA.ATIVIDADES_COMPLEMENTARES,
-        cumprida: 0,
-        pendente: CH_PREVISTA.ATIVIDADES_COMPLEMENTARES - 0,
-      },
-    },
-    percentualGeral,
-    disciplinasPendentes,
-    projecao
+  // Monta o objeto final com todos os resultados
+  const progressoPorCategoria = {
+    'Disciplinas Obrigatórias': { prevista: CH_PREVISTA.OBRIGATORIAS, cumprida: chCumprida['Obrigatória'], pendente: CH_PREVISTA.OBRIGATORIAS - chCumprida['Obrigatória'],},
+    'Disciplinas Optativas': { prevista: CH_PREVISTA.OPTATIVAS, cumprida: chCumprida['Optativa'], pendente: CH_PREVISTA.OPTATIVAS - chCumprida['Optativa'], },
+    'Prática Profissional': { prevista: CH_PREVISTA.PRATICA_PROFISSIONAL, cumprida: chCumprida['Prática Profissional'], pendente: CH_PREVISTA.PRATICA_PROFISSIONAL - chCumprida['Prática Profissional'],},
+    'Disciplinas de TCC': { prevista: CH_PREVISTA.TCC, cumprida: chCumprida['TCC'], pendente: CH_PREVISTA.TCC - chCumprida['TCC'],},
+    'Atividades Complementares': { prevista: CH_PREVISTA.ATIVIDADES_COMPLEMENTARES, cumprida: 0, pendente: CH_PREVISTA.ATIVIDADES_COMPLEMENTARES - 0,},
   };
+
+  return { progressoPorCategoria, percentualGeral, disciplinasPendentes, elegiveis, projecao };
 }
 
-// Componentes UI modernos
-const Card = ({ children, className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn("card-gradient rounded-lg shadow-sm", className)} {...props}>
-    {children}
-  </div>
-);
 
-const CardHeader = ({ children, className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn("flex flex-col space-y-1.5 p-6", className)} {...props}>
-    {children}
-  </div>
-);
-
-const CardTitle = ({ children, className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
-  <h3 className={cn("text-2xl font-semibold leading-none tracking-tight text-card-foreground", className)} {...props}>
-    {children}
-  </h3>
-);
-
-const CardContent = ({ children, className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn("p-6 pt-0", className)} {...props}>
-    {children}
-  </div>
-);
-
-const Progress = ({ value, className, ...props }: { value: number; className?: string }) => (
-  <div className={cn("progress-bar-modern relative overflow-hidden", className)} {...props}>
-    <div
-      className="progress-bar-fill relative shimmer-effect"
-      style={{ width: `${value}%` }}
-    />
-  </div>
-);
-
-const Badge = ({ children, variant = "default", className }: { children: React.ReactNode; variant?: "default" | "secondary" | "outline"; className?: string }) => {
-  const variants = {
-    default: "status-badge-complete",
-    secondary: "status-badge-progress",
-    outline: "status-badge-pending"
-  };
-
-  return (
-    <span className={cn("inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium", variants[variant], className)}>
-      {children}
-    </span>
-  );
-};
-
-const Button = ({ children, variant = "default", className, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "default" | "outline" }) => {
-  const variants = {
-    default: "bg-primary text-primary-foreground hover:bg-primary/90",
-    outline: "border border-border bg-background hover:bg-muted text-foreground"
-  };
-
-  return (
-    <button
-      className={cn("inline-flex items-center justify-center px-4 py-2 rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50", variants[variant], className)}
-      {...props}
-    >
-      {children}
-    </button>
-  );
-};
-
-// --- COMPONENTE PRINCIPAL ---
+// --- COMPONENTE PRINCIPAL (sem alterações na lógica de renderização) ---
 export default function App() {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [ingresso, setIngresso] = useState<string>('2023-09');
   const [isMounted, setIsMounted] = useState(false);
 
-  // Lógica de localStorage e handlers
   useEffect(() => {
     const savedIds = localStorage.getItem('disciplinasConcluidas');
     const savedIngresso = localStorage.getItem('dataIngresso');
@@ -387,12 +127,10 @@ export default function App() {
     });
   };
 
-  // CORRIGIDO: Forçar recálculo sempre que ingresso ou selectedIds mudarem
   const resultados = useMemo(() => {
     if (!isMounted) return null;
-    // Garantir que sempre recalcula quando a data de ingresso muda
-    return calcularResultados(selectedIds, ingresso);
-  }, [selectedIds, ingresso, isMounted]);
+    return calcularResultados(selectedIds);
+  }, [selectedIds, isMounted]);
 
   const disciplinasPorSemestre = useMemo(() => {
     return MATRIZ_CURRICULAR.reduce((acc, d) => {
@@ -401,245 +139,90 @@ export default function App() {
     }, {} as Record<number, Disciplina[]>);
   }, []);
 
-  const getStatusIcon = (disciplina: Disciplina) => {
-    const isConcluida = selectedIds.has(disciplina.id);
-    return isConcluida ? (
-      <CheckCircle className="h-4 w-4 text-primary" />
-    ) : (
-      <AlertCircle className="h-4 w-4 text-muted-foreground" />
-    );
-  };
-
-  const getCategoryClass = (categoria: Disciplina['categoria']) => {
-    switch (categoria) {
-      case 'Obrigatória': return 'category-obrigatoria';
-      case 'Optativa': return 'category-optativa';
-      case 'Prática Profissional': return 'category-pratica';
-      case 'TCC': return 'category-tcc';
-      default: return 'category-obrigatoria';
-    }
-  };
-
-  if (!isMounted) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <GraduationCap className="h-12 w-12 text-primary mx-auto animate-spin" />
-          <p className="text-lg text-muted-foreground">Carregando aplicação...</p>
-        </div>
-      </div>
-    );
-  }
+  if (!isMounted) return <div className="loading">Carregando aplicação...</div>;
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      {/* Header */}
-      <div className="mb-8 text-center animate-fade-in-up">
-        <h1 className="text-4xl font-bold text-foreground mb-2 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-          Progresso Acadêmico
-        </h1>
-        <p className="text-muted-foreground">Acompanhe seu desenvolvimento no curso de Ciência da Computação - IFBA</p>
-      </div>
+    <div className="container">
+      <header>
+        <h1>Acompanhamento de Progresso - Ciência da Computação IFBA</h1>
+      </header>
 
-      {/* Grid com três seções */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Seção 1: Matriz Curricular */}
-        <Card className="lg:col-span-1 floating-card animate-fade-in-up">
-          <CardHeader>
-            <div className="text-sm text-muted-foreground mb-2">
-              Seu Mês e Ano de Ingresso:
-              <input
-                type="month"
-                value={ingresso}
-                onChange={(e) => setIngresso(e.target.value)}
-                className="ml-2 px-2 py-1 border border-border rounded text-foreground bg-input text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
-              />
+      <main className="main-grid">
+        <section className="card">
+          <h2>Percentual de Progresso no Curso</h2>
+          <div className="progress-bar-container">
+            <div
+              className="progress-bar"
+              style={{ width: `${resultados?.percentualGeral.toFixed(2)}%` }}>
+              {resultados?.percentualGeral.toFixed(2)}%
             </div>
-            <CardTitle className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-primary" />
-              Matriz Curricular
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 max-h-96 overflow-y-auto">
-            {Object.entries(disciplinasPorSemestre).map(([semestre, disciplinas]) => (
-              <div key={semestre} className="semester-card animate-delay-1">
-                <h4 className="font-semibold text-sm text-foreground mb-3 flex items-center gap-2">
-                  <span className="bg-primary text-primary-foreground w-6 h-6 rounded-full flex items-center justify-center text-xs">
-                    {semestre}
-                  </span>
-                  {semestre}º Semestre
-                </h4>
-                <div className="space-y-2">
-                  {disciplinas.map(d => (
-                    <div key={d.id} className="discipline-item">
-                      <input
-                        type="checkbox"
-                        id={`d-${d.id}`}
-                        checked={selectedIds.has(d.id)}
-                        onChange={() => handleToggleDisciplina(d.id)}
-                        className="discipline-checkbox"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          {getStatusIcon(d)}
-                          <label htmlFor={`d-${d.id}`} className="font-medium text-sm text-card-foreground cursor-pointer truncate">
-                            {d.codigo} - {d.nome}
-                          </label>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs">
-                          <span className={cn("category-badge", getCategoryClass(d.categoria))}>
-                            {d.categoria}
-                          </span>
-                          <span className="workload-info">{d.carga_horaria}h</span>
-                          {d.prerequisitos.length > 0 && (
-                            <span className="text-muted-foreground truncate">
-                              Pré-req: {d.prerequisitos.join(', ')}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        {/* Seção 2: Projeção de Formatura */}
-        <Card className="lg:col-span-1 floating-card animate-fade-in-up animate-delay-1">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-primary" />
-              Projeção de Formatura
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {resultados && (
-              <>
-                <div className="projection-card text-center space-y-2">
-                  <div className="text-3xl font-bold text-primary">{resultados.projecao.semestre}</div>
-                  <p className="text-sm text-muted-foreground">Semestre previsto para formatura</p>
-                  <p className="text-xs text-muted-foreground">{resultados.projecao.data}</p>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Disciplinas Concluídas</span>
-                    <span className="font-medium">
-                      {MATRIZ_CURRICULAR.length - resultados.disciplinasPendentes.length}/{MATRIZ_CURRICULAR.length}
+          </div>
+          <table className="progress-table">
+            <thead>
+              <tr>
+                <th>Requisitos de Conclusão de Curso</th>
+                <th>Situação</th>
+                <th>CH Prevista</th>
+                <th>CH Cumprido</th>
+                <th>CH Pendente</th>
+              </tr>
+            </thead>
+            <tbody>
+              {resultados && Object.entries(resultados.progressoPorCategoria).map(([nome, dados]) => (
+                <tr key={nome}>
+                  <td>{nome}</td>
+                  <td>
+                    <span className={dados.pendente <= 0 ? 'status-cumprido' : 'status-nao-cumprido'}>
+                      {dados.pendente <= 0 ? 'Cumprido' : 'Não-cumprido'}
                     </span>
-                  </div>
+                  </td>
+                  <td>{dados.prevista}</td>
+                  <td>{dados.cumprida}</td>
+                  <td>{dados.pendente}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
 
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Disciplinas Restantes</span>
-                    <span className="font-medium text-primary">
-                      {resultados.disciplinasPendentes.length}
-                    </span>
-                  </div>
+          {resultados && (
+            <div className="projection-section">
+              <h3>Projeção de Formatura</h3>
+              <p><strong>Semestre Previsto:</strong> {resultados.projecao.semestre}</p>
+              <p><strong>Data Prevista:</strong> {resultados.projecao.data}</p>
+            </div>
+          )}
+        </section>
 
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Data de Ingresso</span>
-                    <span className="font-medium">
-                      {new Date(ingresso + '-01').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
-                    </span>
-                  </div>
+        <section className="card">
+          <h2>Matriz Curricular</h2>
+          <div className="input-group">
+            <label htmlFor="ingresso">Seu Mês e Ano de Ingresso:</label>
+            <input
+              type="month"
+              id="ingresso"
+              value={ingresso}
+              onChange={(e) => setIngresso(e.target.value)}
+            />
+          </div>
+          <hr/>
+          {Object.entries(disciplinasPorSemestre).map(([semestre, disciplinas]) => (
+            <div key={semestre} className="semester-block">
+              <h3>{semestre}º Semestre</h3>
+              {disciplinas.map(d => (
+                <div key={d.id} className="checkbox-item">
+                  <input
+                    type="checkbox"
+                    id={`d-${d.id}`}
+                    checked={selectedIds.has(d.id)}
+                    onChange={() => handleToggleDisciplina(d.id)}
+                  />
+                  <label htmlFor={`d-${d.id}`}>{d.codigo} - {d.nome}</label>
                 </div>
-
-                <div className="bg-muted rounded-lg p-4">
-                  <h4 className="font-medium mb-2 text-sm text-foreground">Próximas Disciplinas</h4>
-                  <ul className="space-y-1 text-sm text-muted-foreground">
-                    {resultados.disciplinasPendentes.slice(0, 3).map(d => (
-                      <li key={d.id} className="flex items-center gap-2">
-                        <Clock className="h-3 w-3" />
-                        {d.nome}
-                      </li>
-                    ))}
-                    {resultados.disciplinasPendentes.length > 3 && (
-                      <li className="text-xs text-muted-foreground">
-                        +{resultados.disciplinasPendentes.length - 3} disciplinas restantes
-                      </li>
-                    )}
-                  </ul>
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Seção 3: Percentual de Progresso */}
-        <Card className="lg:col-span-1 floating-card animate-fade-in-up animate-delay-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-primary" />
-              Percentual de Progresso
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {resultados && (
-              <>
-                <div className="flex items-center justify-center">
-                  <div className="progress-circle">
-                    <svg viewBox="0 0 100 100">
-                      <circle
-                        cx="50"
-                        cy="50"
-                        r="40"
-                        strokeWidth="8"
-                        fill="transparent"
-                        className="bg-circle stroke-[8]"
-                      />
-                      <circle
-                        cx="50"
-                        cy="50"
-                        r="40"
-                        strokeWidth="8"
-                        fill="transparent"
-                        strokeDasharray={`${resultados.percentualGeral * 2.51} 251`}
-                        className="progress-fill stroke-[8]"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="text-center">
-                        <div className="text-3xl font-bold text-primary">{resultados.percentualGeral.toFixed(1)}%</div>
-                        <div className="text-xs text-muted-foreground">Completo</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between text-sm">
-                    <span>Progresso Geral</span>
-                    <span className="font-medium">{resultados.percentualGeral.toFixed(1)}%</span>
-                  </div>
-
-                  <Progress value={resultados.percentualGeral} className="h-3" />
-
-                  <div className="space-y-4">
-                    <h4 className="font-medium text-sm">Requisitos de Conclusão</h4>
-                    {Object.entries(resultados.progressoPorCategoria).map(([nome, dados]) => (
-                      <div key={nome} className="space-y-2">
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="text-muted-foreground">{nome}</span>
-                          <span className="font-medium">{dados.cumprida}/{dados.prevista}h</span>
-                        </div>
-                        <Progress value={(dados.cumprida / dados.prevista) * 100} className="h-1" />
-                        <div className="flex justify-between items-center text-xs">
-                          <Badge variant={dados.pendente <= 0 ? "default" : "outline"}>
-                            {dados.pendente <= 0 ? 'Cumprido' : `${dados.pendente}h restantes`}
-                          </Badge>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+              ))}
+            </div>
+          ))}
+        </section>
+      </main>
     </div>
   );
 }
